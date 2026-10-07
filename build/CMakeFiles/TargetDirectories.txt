@@ -1,3 +1,0 @@
-/home/Bismay/projects/netlab_pp/build/CMakeFiles/bytes.dir
-/home/Bismay/projects/netlab_pp/build/CMakeFiles/edit_cache.dir
-/home/Bismay/projects/netlab_pp/build/CMakeFiles/rebuild_cache.dir
