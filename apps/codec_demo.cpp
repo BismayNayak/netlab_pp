@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "netlab/packet_codec.hpp"
+#include "netlab/bytes.hpp"
 
 using namespace netlab;
 

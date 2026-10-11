@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnetlab.a CMakeFiles/netlab.dir/src/bytes.cpp.o CMakeFiles/netlab.dir/src/packet_codec.cpp.o
+/usr/bin/ranlib libnetlab.a

@@ -1,8 +1,9 @@
+#pragma once
+
 #include <cstdint>
 #include <array>
 #include <optional>
-#include "netlab/bytes.hpp"
-
+#include <span>
 namespace netlab {
 
     struct PacketHeader{

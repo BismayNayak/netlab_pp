@@ -1,8 +1,9 @@
 #include "netlab/packet_codec.hpp"
+#include "netlab/bytes.hpp"
 
 namespace netlab{
     std::array<std::uint8_t,4> serialize_header(const PacketHeader& header){
-        std::array<uint8_t,4> wire_buffer;
+        std::array<std::uint8_t,4> wire_buffer;
         wire_buffer[0]=header.version;
         wire_buffer[1]=header.type;
 
@@ -13,8 +14,8 @@ namespace netlab{
         return wire_buffer;
     }
 
-    std::optional<PacketHeader>parse_header(std::span<const uint8_t> bytes){
-        if (bytes.size()!=4) return std::nullopt;
+    std::optional<PacketHeader>parse_header(std::span<const std::uint8_t> bytes){
+        if (bytes.size()<4) return std::nullopt;
 
         PacketHeader header;
         header.version=bytes[0];
