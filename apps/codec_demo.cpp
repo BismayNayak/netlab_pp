@@ -1,33 +1,32 @@
-#include "netlab/bytes.hpp"
-
-#include <cstdint>
-#include <iomanip>
 #include <iostream>
+#include <iomanip>
+#include "netlab/packet_codec.hpp"
+
+using namespace netlab;
 
 int main() {
-    std::uint16_t value = 0x1234;
+    PacketHeader original{
+        .version = 1,
+        .type = 2,
+        .payload_length = 500 
+    };
 
-    auto encoded = netlab::encode_u16_be(value);
+    auto wire_bytes = serialize_header(original);
 
-    std::cout << "Encoded bytes: ";
-
-    for (std::uint8_t byte : encoded) {
-        std::cout
-            << std::hex
-            << std::setw(2)
-            << std::setfill('0')
-            << static_cast<int>(byte)
-            << ' ';
+    std::cout << "Wire bytes: ";
+    for (std::uint8_t b : wire_bytes) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0')
+                  << static_cast<int>(b) << ' ';
     }
+    std::cout << "\n\n";
 
-    std::cout << '\n';
+    const std::span<std::uint8_t> view(wire_bytes);
+    auto parsed = parse_header(view);
 
-    std::uint16_t decoded =
-        netlab::decode_u16_be(encoded);
-
-    std::cout
-        << "Decoded value: 0x"
-        << std::hex
-        << decoded
-        << '\n';
+    if (parsed) {
+        std::cout << "Parsed successfully!\n";
+        std::cout << "Version:        " << std::dec << static_cast<int>(parsed->version) << '\n';
+        std::cout << "Type:           " << static_cast<int>(parsed->type) << '\n';
+        std::cout << "Payload Length: " << parsed->payload_length << '\n';
+    }
 }

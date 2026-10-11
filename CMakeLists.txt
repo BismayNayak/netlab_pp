@@ -5,7 +5,9 @@ project(netlab_pp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(netlab src/bytes.cpp )
+add_library(netlab 
+    src/bytes.cpp
+    src/packet_codec.cpp )
 
 target_include_directories(netlab PUBLIC ${PROJECT_SOURCE_DIR}/include )
 
