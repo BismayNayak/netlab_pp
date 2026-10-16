@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(netlab 
     src/bytes.cpp
     src/packet_codec.cpp 
+    src/checksum.cpp
 )
 
 target_include_directories(netlab PUBLIC ${PROJECT_SOURCE_DIR}/include )

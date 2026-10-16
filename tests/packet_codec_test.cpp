@@ -1,6 +1,7 @@
 #include "netlab/packet_codec.hpp"
 
 #include <array>
+#include <vector>
 #include <cstdint>
 #include <iostream>
 #include <span>
@@ -11,34 +12,34 @@ void expect(bool condition, const char* message) {
     if (!condition) {
         std::cerr << "FAIL: " << message << '\n';
         ++failures;
-        return;
     }
-    std::cerr<<"PASS :"<<message<<'\n';
 }
 
 int main() {
-    // Test 1 — Exact serialized bytes (Wire Format)
+    // Test 1 — Exact 6-Byte Serialized Wire Format
     {
         netlab::PacketHeader header{
-            .version = 3,
-            .type = 7,
-            .payload_length = 0x1234
+            .version = 1,
+            .type = 2,
+            .payload_length = 500
         };
 
         auto bytes = netlab::serialize_header(header);
 
-        expect(bytes[0] == 0x03, "version byte");
-        expect(bytes[1] == 0x07, "type byte");
-        expect(bytes[2] == 0x12, "payload length high byte");
-        expect(bytes[3] == 0x34, "payload length low byte");
+        expect(bytes[0] == 0x01, "version byte");
+        expect(bytes[1] == 0x02, "type byte");
+        expect(bytes[2] == 0x01, "payload length high byte");
+        expect(bytes[3] == 0xF4, "payload length low byte");
+        expect(bytes[4] == 0xFD, "checksum high byte");
+        expect(bytes[5] == 0x09, "checksum low byte");
     }
 
     // Test 2 — Round Trip Property: parse(serialize(x)) == x
     {
         netlab::PacketHeader original{
-            .version = 5,
-            .type = 1,
-            .payload_length = 1024
+            .version = 3,
+            .type = 7,
+            .payload_length = 0x1234
         };
 
         auto bytes = netlab::serialize_header(original);
@@ -55,43 +56,47 @@ int main() {
 
     // Test 3 — Short Inputs (Buffer Underflow Protection)
     {
-        // 0-byte input
-        std::array<std::uint8_t, 0> buf0{};
-        auto res0 = netlab::parse_header(buf0);
-        expect(!res0.has_value(), "0-byte input returns std::nullopt");
-
-        // 1-byte input
-        std::array<std::uint8_t, 1> buf1{0x01};
-        auto res1 = netlab::parse_header(buf1);
-        expect(!res1.has_value(), "1-byte input returns std::nullopt");
-
-        // 2-byte input
-        std::array<std::uint8_t, 2> buf2{0x01, 0x02};
-        auto res2 = netlab::parse_header(buf2);
-        expect(!res2.has_value(), "2-byte input returns std::nullopt");
-
-        // 3-byte input
-        std::array<std::uint8_t, 3> buf3{0x01, 0x02, 0x00};
-        auto res3 = netlab::parse_header(buf3);
-        expect(!res3.has_value(), "3-byte input returns std::nullopt");
+        for (std::size_t size = 0; size < 6; ++size) {
+            std::vector<std::uint8_t> short_buf(size, 0);
+            auto res = netlab::parse_header(short_buf);
+            expect(!res.has_value(), "buffer smaller than 6 bytes returns std::nullopt");
+        }
     }
 
-    // Test 4 — More than four bytes (Trailing Payload / Slicing)
+    // Test 4 — Corruption Testing (Payload Bit Flip)
     {
-        std::array<std::uint8_t, 6> packet{
-            0x01, 0x02, 0x01, 0xF4, // Header bytes (version=1, type=2, payload_length=500)
-            0xAA, 0xBB              // Trailing payload bytes
+        netlab::PacketHeader header{
+            .version = 1,
+            .type = 2,
+            .payload_length = 500
         };
 
-        auto parsed = netlab::parse_header(packet);
+        auto bytes = netlab::serialize_header(header);
 
-        expect(parsed.has_value(), "packet with trailing payload parses successfully");
+        // Corrupt a bit in payload length (0xF4 -> 0xF5 via XOR)
+        auto corrupted_bytes = bytes;
+        corrupted_bytes[3] ^= 0x01;
 
-        if (parsed.has_value()) {
-            expect(parsed->version == 1, "trailing payload version is 1");
-            expect(parsed->type == 2, "trailing payload type is 2");
-            expect(parsed->payload_length == 500, "trailing payload length is 500");
-        }
+        auto parsed = netlab::parse_header(corrupted_bytes);
+        expect(!parsed.has_value(), "corrupted header data causes checksum failure and rejects packet");
+    }
+
+    // Test 5 — Checksum Corruption Testing
+    {
+        netlab::PacketHeader header{
+            .version = 1,
+            .type = 2,
+            .payload_length = 500
+        };
+
+        auto bytes = netlab::serialize_header(header);
+
+        // Corrupt the checksum byte itself (0x09 -> 0x08)
+        auto corrupted_bytes = bytes;
+        corrupted_bytes[5] ^= 0x01;
+
+        auto parsed = netlab::parse_header(corrupted_bytes);
+        expect(!parsed.has_value(), "corrupted checksum bytes cause parse failure");
     }
 
     // Summary & Exit Status Code
