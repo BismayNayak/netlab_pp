@@ -1,4 +1,5 @@
 #include "netlab/packet_codec.hpp"
+#include "netlab/checksum.hpp"
 
 #include <array>
 #include <vector>
@@ -34,7 +35,7 @@ int main() {
         expect(bytes[5] == 0x09, "checksum low byte");
     }
 
-    // Test 2 — Round Trip Property: parse(serialize(x)) == x
+    // Test 2 — Round Trip Property
     {
         netlab::PacketHeader original{
             .version = 3,
@@ -54,7 +55,19 @@ int main() {
         }
     }
 
-    // Test 3 — Short Inputs (Buffer Underflow Protection)
+    // Test 3 — Checksum Edge Cases (Odd, 1-Byte, Carry)
+    {
+        std::array<std::uint8_t, 3> odd_bytes{0x01, 0x02, 0x03};
+        expect(netlab::compute_checksum(odd_bytes) == 0xFBFD, "checksum handles odd-length input safely");
+
+        std::array<std::uint8_t, 1> single_byte{0x12};
+        expect(netlab::compute_checksum(single_byte) == 0xEDFF, "checksum handles one-byte input safely");
+
+        std::array<std::uint8_t, 4> carry_bytes{0xFF, 0xFF, 0x00, 0x01};
+        expect(netlab::compute_checksum(carry_bytes) == 0xFFFE, "checksum performs end-around carry correctly");
+    }
+
+    // Test 4 — Short Inputs (Buffer Underflow Protection)
     {
         for (std::size_t size = 0; size < 6; ++size) {
             std::vector<std::uint8_t> short_buf(size, 0);
@@ -63,7 +76,26 @@ int main() {
         }
     }
 
-    // Test 4 — Corruption Testing (Payload Bit Flip)
+    // Test 5 — Trailing Payload Acceptance (>6 bytes)
+    {
+        auto header = netlab::serialize_header({
+            .version = 1,
+            .type = 2,
+            .payload_length = 2
+        });
+
+        std::array<std::uint8_t, 8> packet{};
+        for (std::size_t i = 0; i < 6; ++i) {
+            packet[i] = header[i];
+        }
+        packet[6] = 0xAA;
+        packet[7] = 0xBB;
+
+        auto parsed = netlab::parse_header(packet);
+        expect(parsed.has_value(), "header parser accepts packets with trailing payload data");
+    }
+
+    // Test 6 — Corruption Testing (Payload Bit Flip)
     {
         netlab::PacketHeader header{
             .version = 1,
@@ -72,16 +104,14 @@ int main() {
         };
 
         auto bytes = netlab::serialize_header(header);
-
-        // Corrupt a bit in payload length (0xF4 -> 0xF5 via XOR)
         auto corrupted_bytes = bytes;
-        corrupted_bytes[3] ^= 0x01;
+        corrupted_bytes[3] ^= 0x01; // Flip a bit in payload length
 
         auto parsed = netlab::parse_header(corrupted_bytes);
         expect(!parsed.has_value(), "corrupted header data causes checksum failure and rejects packet");
     }
 
-    // Test 5 — Checksum Corruption Testing
+    // Test 7 — Checksum Corruption Testing
     {
         netlab::PacketHeader header{
             .version = 1,
@@ -90,10 +120,8 @@ int main() {
         };
 
         auto bytes = netlab::serialize_header(header);
-
-        // Corrupt the checksum byte itself (0x09 -> 0x08)
         auto corrupted_bytes = bytes;
-        corrupted_bytes[5] ^= 0x01;
+        corrupted_bytes[5] ^= 0x01; // Flip a bit in checksum
 
         auto parsed = netlab::parse_header(corrupted_bytes);
         expect(!parsed.has_value(), "corrupted checksum bytes cause parse failure");

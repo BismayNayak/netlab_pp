@@ -1,5 +1,6 @@
 #include "netlab/packet_codec.hpp"
 #include "netlab/bytes.hpp"
+#include "netlab/checksum.hpp"
 
 namespace netlab{
     std::array<std::uint8_t, 6> serialize_header(const PacketHeader& header) {

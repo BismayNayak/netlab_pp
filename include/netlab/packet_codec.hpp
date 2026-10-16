@@ -13,6 +13,6 @@ namespace netlab {
     };
 
     std::array<std::uint8_t,6>serialize_header(const PacketHeader& header);
-    std::optional<PacketHeader>parse_header(std::span<const uint8_t> bytes);
+    std::optional<PacketHeader>parse_header(std::span<const std::uint8_t> bytes);
 
 }

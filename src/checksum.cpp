@@ -5,7 +5,7 @@ namespace netlab {
         std::uint32_t sum = 0;
         std::size_t i = 0;
 
-        while (i + 1 <= bytes.size()) {
+        while (i + 1 < bytes.size()) {
             std::uint16_t word = static_cast<std::uint16_t>(
                 (static_cast<std::uint16_t>(bytes[i]) << 8) | 
                 static_cast<std::uint16_t>(bytes[i + 1])
