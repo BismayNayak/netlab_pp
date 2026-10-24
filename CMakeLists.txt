@@ -9,6 +9,7 @@ add_library(netlab
     src/bytes.cpp
     src/packet_codec.cpp 
     src/checksum.cpp
+    src/fd.cpp
 )
 
 target_include_directories(netlab PUBLIC ${PROJECT_SOURCE_DIR}/include )
@@ -34,6 +35,14 @@ add_executable(packet_codec_test
 )
 
 target_link_libraries(packet_codec_test PRIVATE 
+    netlab
+)
+
+add_executable(fd_test
+    tests/fd_test.cpp
+)
+
+target_link_libraries(fd_test PRIVATE
     netlab
 )
 
