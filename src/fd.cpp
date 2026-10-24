@@ -22,7 +22,7 @@ namespace netlab {
     }
 
     bool UniqueFd::valid()const noexcept{
-        return fd_ != -1;
+        return fd_ >= 0;
     }
 
     int UniqueFd::release() noexcept{

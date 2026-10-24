@@ -45,6 +45,10 @@ add_executable(fd_test
 target_link_libraries(fd_test PRIVATE
     netlab
 )
+add_test(
+    NAME fd_test
+    COMMAND fd_test
+)
 
 # --- Testing Integration ---
 enable_testing()

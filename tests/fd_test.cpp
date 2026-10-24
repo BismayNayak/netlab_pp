@@ -12,6 +12,11 @@ void expect(bool condition, const char* message) {
         failure++;
     }
 }
+
+bool is_fd_closed(int fd){
+    return ::fcntl(fd,F_GETFD)==-1;
+}
+
 int main() {
     // Test 1 — Default object is empty
     {
@@ -59,6 +64,7 @@ int main() {
         int leaked_fd = owner.release();
         expect(owner.valid() == false, "Owner becomes empty after release");
         expect(leaked_fd == raw_fd, "Raw FD is transferred outward");
+        expect(is_fd_closed(leaked_fd)==false,"Raw descriptor is still open.");
         ::close(leaked_fd);
     }
 
@@ -68,6 +74,7 @@ int main() {
         netlab::UniqueFd owner(raw_fd);
         owner.reset();
         expect(owner.valid() == false, "Owner becomes empty after reset()");
+        expect(is_fd_closed(raw_fd)==true,"Original raw descriptor is invalid.");
     }
 
     // Test 8 — Move assignment transfers ownership and disposes destination's old resource
@@ -81,6 +88,7 @@ int main() {
 
         expect(owner_a.valid() == false, "Moved-from object becomes empty");
         expect(owner_b.get() == fd_a, "Destination acquires new FD, old resource disposed");
+        expect(is_fd_closed(fd_b)==true,"fd_b was closed." );
     }
 
     if (failure == 0) {
